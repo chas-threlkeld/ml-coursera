@@ -1,0 +1,849 @@
+* General Terminology
+- Input $x$: ``input'' variable feature
+- Output $y$: ``output'' variable or ``target'' variable
+- $m$: Total number of training examples
+- $(x,y)$: A single training example
+- $(x^{(i)},y^{(i)})$: the $i$th training example
+- $\hat{y}$: estimate or prediction for $y$
+- $f(x)\rightarrow{\hat{y}}$: function $f$ predicts estimate $\hat{y}$ on input $x$
+    
+
+* Linear Regression
+** Basics
+$f_{w,b}(x)=wx+b$, we are learning $w$ (weight) and $b$ (bias)
+or more simply, $f(x)=wx+b$
+If $x$ is a scalar, this is /univariate linear regression/
+
+** Example
+
+*** Data
+| Size (1000 sq ft) | Price (1000s of dollars) |
+|-------------------+--------------------------|
+|               1.0 |                      300 |
+|                 2 |                      500 |
+
+*** Training Set
+#+begin_src python :session :results output
+  import numpy as np
+  import matplotlib.pyplot as plt
+
+  # x_train is the input variable (size in 1000 sq ft)
+  x_train = np.array([1.0, 2.0])
+
+  # y_train is the target (price in 1000s of dollars)
+  y_train = np.array([300.0, 500.0])
+  print(f"x_train = {x_train}")
+  print(f"y_train = {y_train}")
+#+end_src
+
+#+RESULTS:
+: x_train = [1. 2.]
+: y_train = [300. 500.]
+
+*** Number of examples
+#+begin_src python :session :results output
+  # m is the number of training examples
+  print(f"x_train.shape: {x_train.shape}")
+  m = x_train.shape[0]
+  print(f"Number of training examples is: {m}")
+#+end_src
+
+#+RESULTS:
+: x_train.shape: (2,)
+: Number of training examples is: 2
+
+#+begin_src python :session :results output
+  # m is the number of training examples
+  m = len(x_train)
+  print(f"Number of training examples is: {m}")
+#+end_src
+
+#+RESULTS:
+: Number of training examples is: 2
+
+*** Training examples
+#+begin_src python :session :results output
+  i = 0 # Change this 1 to see (x^1, y^1)
+
+  x_i = x_train[i]
+  y_i = y_train[i]
+  print(f"f(x^({i}), y^({i})) = ({x_i}, {y_i})")
+#+end_src
+
+#+RESULTS:
+: f(x^(0), y^(0)) = (1.0, 300.0)
+
+*** Plotting the data
+#+begin_src python :session :results file
+  # Plot the data points
+  plt.scatter(x_train, y_train, marker='x', c='r')
+  # Set the title
+  plt.title("Housing Prices")
+  # Set the y-axis label
+  plt.ylabel('Price (in 1000s of dollars)')
+  # Set the x-axis label
+  plt.xlabel("Size (1000 sq ft)")
+  plt.savefig('fig.png')
+  'fig.png'
+#+end_src
+
+#+RESULTS:
+[[file:fig.png]]
+
+*** Model Parameters
+#+begin_src python :session :results output
+  w = 200
+  b = 100
+  print(f"w: {w}")
+  print(f"b: {b}")
+#+end_src
+
+#+RESULTS:
+: w: 200
+: b: 100
+
+*** Modeling output
+#+begin_src python :session :results none
+  def compute_model_output(x, w, b):
+      """
+      Computes the prediction of a linear model
+      Args:
+	x (ndarray (m,)): Data, m examples
+	w,b (scalar)    : model parameters
+      Returns:
+	y (ndarray (m,)): target values
+      """
+      m = x.shape[0]
+      f_wb = np.zeros(m)
+      for i in range(m):
+          f_wb[i] = w * x[i] + b
+      return f_wb
+#+end_src
+
+*** Plotting predictions vs data
+#+begin_src python :session :results file
+
+  tmp_f_wb = compute_model_output(x_train, w, b)
+
+  # Plot our model prediction
+  plt.plot(x_train, tmp_f_wb, c='b', label="Our Prediction")
+
+  # Plot the data points
+  plt.scatter(x_train, y_train, marker='x', c='r', label="Actual Values")
+
+  # Set the title
+  plt.title("Housing Prices")
+  # Set the y-axis label
+  plt.ylabel("Price (in 1000s of dollars)")
+  # Set the x-axis label
+  plt.xlabel("Price (in 1000s of dollars)")
+  plt.legend()
+  plt.savefig('fig2.png')
+  plt.close()
+  'fig2.png'
+#+end_src
+
+#+RESULTS:
+[[file:fig2.png]]
+
+*** Estimate for new data
+#+begin_src python :session :results output
+  x_i = 1.2
+  cost_1200sqft = w * x_i + b
+
+  print(f"${cost_1200sqft:.0f} thousand dollars")
+#+end_src
+
+#+RESULTS:
+: $340 thousand dollars
+
+** Cost Function
+For model $f_{w,b}(x)=wx+b$ with parameters (or coefficients or weights) $w$ and $b$,
+A cost function tells us how well the model is doing so that we can aim to do better.
+
+Recall training data $(x^{(i)},y^{(i)})$ and model fit $f_{w,b}(x^{(i)})=wx^{(i)}+b=\hat{y}^{(i)}$
+
+Our goal is to find $w,b$ such that $\hat{y}^{(i)$ is close to $y^{(i)}$ for all $(x^{(i)},y^{(i)})$
+
+Consider the cost function $J(w,b)=\frac{1}{2m}\displaystyle\sum_{i=1}^m(\hat{y}^{(i)}-y^{(i)})^2$, which is the squared error cost function: (Half of) the average of the square of the error of each data point.
+
+Equivalently, $J(w,b)=\frac{1}{2m}\displaystyle\sum_{i=1}^m(f_{w,b}(x^{(i)})-y^{(i)})^2$. In this notation, we can see that the cost function is a function of $w,b$, and so our task is to choose $w,b$ to minimize the cost. I.e. $\displaystyle\text{minimize}_{w,b}J(w,b)$
+** Optional Lab: Cost Function
+| Size (1000 sq ft) | Price (1000s of dollars) |
+|                 1 |                      300 |
+|                 2 | 500                      |
+
+#+begin_src python :session :results output
+  import numpy as np
+  import matplotlib.pyplot as plt
+
+  x_train = np.array([1.0, 2.0])
+  y_train = np.array([300.0, 500.0])
+
+  def compute_cost(x, y, w, b):
+      """
+      Computes the cost function for linear regression.
+
+      Args:
+	x (ndarray (m,)): Data, m examples
+	y (ndarray (m,)): target values
+	w,b (scalar)    : model parameters
+
+      Returns
+	total_cost (float): The cost of using w,b as parameters for linear regression
+	      to fit the data points in x and y
+      """
+      # number of training examples
+      m = x.shape[0]
+
+      cost_sum = 0
+      for i in range(m):
+	  f_wb = w * x[i] + b
+	  cost = (f_wb - y[i]) ** 2
+	  cost_sum = cost_sum + cost
+      total_cost = (1 / (2 * m)) * cost_sum
+
+      return total_cost
+
+  # Larger Data Set
+  x_train = np.array([1.0, 1.7, 2.0, 2.5, 3.0, 3.2])
+  y_train = np.array([250, 300, 480, 430, 630, 730])
+
+
+
+#+end_src
+
+
+** Gradient Descent
+*** Algorithm
+
+$w=w-\alpha{\frac{\partial}{\partial{w}}J(w,b)$, where:
+- $=$ is assignment
+- $\alpha$ is the learning rate, greater than 0
+- $\frac{d}{dw}J(w,b)$ is the partial derivative of the cost function $J$ with respect to $w$
+
+Similarly, $b=b-\alpha\frac{\partial}{\partial{b}}J(w,b)$
+Repeat until convergence.
+I.e., $|w'-w|<\epsilon$ and $|b'-b|<\epsilon$ for appropriate $\epsilon$
+Important! Be sure to update simultaneously.
+*** Choosing a learning rate
+Recall $w=w-\alpha\frac{\partial}{\partial{w}}J(w)$
+If the learning rate is too small, the learning will happen extremely slowly, as gradient descent will take many steps.
+If the learning rate is too big, it's possible that gradient descent does not converge at all, as it map skip over the minimum and back again at each time step.
+
+Note that no change in learning rate can overcome local minima, since the partial term will still be equal to zero.
+*** Gradient Descent for Linear Regression
+Model: $f_{w,b}=wx+b$
+Cost: $J(w,b)=\frac{1}{2m}\displaystyle\sum_{i=1}^m(f_{w,b}(x^{(i)}-y^{(i)})^2$
+Gradient Descent:
+Repeat until convergence:
+$w=w-\alpha\frac{\partial}{\partial{w}}J(w,b)$, where $\frac{\partial}{\partial{w}}J(w,b)=\frac{1}{m}\displaystyle\sum_{i=1}^m(f_{w,b}(x^{(i)}-y^{(i)})x^{(i)}$
+$b=b-\alpha\frac{\partial}{\partial{b}}J(w,b)$, where $\frac{\partial}{\partial{b}}J(w,b)=\frac{1}{m}\displaystyle\sum_{i=1}^m(f_{w,b}(x^{(i)}-y^{(i)})$
+Note that the squared error cost is a convex function, and so will have only one minimum: the global minimum.
+
+#+begin_src python :session :results output
+  import math, copy
+  import numpy as np
+  import matplotlib.pyplot as plt
+
+  x_train = np.array([1.0, 2.0])
+  y_train = np.array([300.0, 500.0])
+
+  def compute_cost(x, y, w, b):
+      m = x.shape[0]
+      cost = 0
+
+      for i in range(m):
+          f_wb = w * x[i] + b
+          cost = cost + (f_wb - y[i])**2
+      total_cost = 1 / (2 * m) * cost
+        
+      return total_cost
+
+  def compute_gradient(x, y, w, b):
+      """
+      Computes the gradient for linear regression
+      Args:
+        x (ndarray (m,)): Data, m examples
+        y (ndarray (m,)): target values
+        w,b (scalar)    : model parameters
+      Returns:
+        dj_dw (scalar)  : The gradient of the cost w.r.t. the parameters w
+        dj_db (scalar)  : The gradient of the cost w.r.t. the parameter b
+      """
+
+      # Number of training examples
+      m = x.shape[0]
+      dj_dw = 0
+      dj_db = 0
+
+      for i in range(m):
+          f_wb = w * x[i] + b
+          dj_dw_i = (f_wb - y[i]) * x[i]
+          dj_db_i = f_wb - y[i]
+          dj_db += dj_db_i
+          dj_dw += dj_dw_i
+      dj_dw = dj_dw / m
+      dj_db = dj_db / m
+
+      return dj_dw, dj_db
+
+  def gradient_descent(x, y, w_in, b_in, alpha, num_iters, cost_function, gradient_function):
+      """
+      Performs gradient descent to fit w,b. Updates w,b by taking
+      num_iters gradient steps with learning rate alpha
+
+      Args:
+        x (ndarray (m,))   : Data, m examples
+        y (ndarray (m,))   : target values
+        w_in,b_in (scalar) : initial values of model parameters
+        alpha (float)      : Learning rate
+        num_iters (int)    : number of iterations to run gradient descent
+        cost_function      : function to call to produce cost
+        gradient_function  : function to call to produce gradient
+
+      Returns:
+        w (scalar)         : Updated value of parameter after running gradient descent
+        b (scalar)         : Updated value of parameter after running gradient descent
+        J_history (list)   : History of cost values
+        p_history (list)   : History of parameters [w,b]
+      """
+
+      w = copy.deepcopy(w_in) # avoid modifying global w_in
+      # An array to store cost J and w's at each iteration primarily for graphing later
+      J_history = []
+      p_history = []
+      b = b_in
+      w = w_in
+
+      for i in range(num_iters):
+          # Calculate the gradient and update the parameters using gradient_function
+          dj_dw, dj_db = gradient_function(x, y, w, b)
+
+          # Update parameters
+          b = b - alpha * dj_db
+          w = w - alpha * dj_dw
+
+          # Save cost J and parameters p at each iteration
+          if i<100000: # Prevent resource exhaustion
+              J_history.append(cost_function(x, y, w, b))
+              p_history.append([w,b])
+
+          # Print cost at each 10 iterations
+          if i% math.ceil(num_iters/10) == 0:
+              print(f"Iteration {i:4}: Cost {J_history[-1]:0.2e} ",
+                    f"dj_dw: {dj_dw:0.3e}, dj_db: {dj_db:0.3e}  ",
+                    f"w: {w:0.3e}, b:{b:0.3e}")
+
+      return w, b, J_history, p_history
+
+  # Initialize parameters
+  w_init = 0
+  b_init = 0
+
+  # some gradient descent settings
+  iterations = 10000
+  tmp_alpha = 1.0e-2
+
+  # run gradient descent
+  w_final, b_final, J_hist, p_hist = gradient_descent(x_train, y_train, w_init, b_init, tmp_alpha,
+                                                      iterations, compute_cost, compute_gradient)
+  print(f"(w,b) found by gradient descent: ({w_final:0.4f},{b_final:0.4f})")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Iteration    0: Cost 7.93e+04  dj_dw: -6.500e+02, dj_db: -4.000e+02   w: 6.500e+00, b:4.000e+00
+Iteration 1000: Cost 3.41e+00  dj_dw: -3.712e-01, dj_db: 6.007e-01   w: 1.949e+02, b:1.082e+02
+Iteration 2000: Cost 7.93e-01  dj_dw: -1.789e-01, dj_db: 2.895e-01   w: 1.975e+02, b:1.040e+02
+Iteration 3000: Cost 1.84e-01  dj_dw: -8.625e-02, dj_db: 1.396e-01   w: 1.988e+02, b:1.019e+02
+Iteration 4000: Cost 4.28e-02  dj_dw: -4.158e-02, dj_db: 6.727e-02   w: 1.994e+02, b:1.009e+02
+Iteration 5000: Cost 9.95e-03  dj_dw: -2.004e-02, dj_db: 3.243e-02   w: 1.997e+02, b:1.004e+02
+Iteration 6000: Cost 2.31e-03  dj_dw: -9.660e-03, dj_db: 1.563e-02   w: 1.999e+02, b:1.002e+02
+Iteration 7000: Cost 5.37e-04  dj_dw: -4.657e-03, dj_db: 7.535e-03   w: 1.999e+02, b:1.001e+02
+Iteration 8000: Cost 1.25e-04  dj_dw: -2.245e-03, dj_db: 3.632e-03   w: 2.000e+02, b:1.000e+02
+Iteration 9000: Cost 2.90e-05  dj_dw: -1.082e-03, dj_db: 1.751e-03   w: 2.000e+02, b:1.000e+02
+(w,b) found by gradient descent: (199.9929,100.0116)
+#+end_example
+
+#+begin_src python :session :results file
+  # plot cost versus iteration
+  fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout=True, figsize=(12, 4))
+  ax1.plot(J_hist[:100])
+  ax2.plot(1000 + np.arange(len(J_hist[1000:])), J_hist[1000:])
+  ax1.set_title("Cost vs. iteration(start)"); ax2.set_title("Cost vs. iteration (end)")
+  ax1.set_ylabel('Cost')                    ; ax2.set_ylabel('Cost')
+  ax1.set_xlabel('iteration step')          ; ax2.set_xlabel('iteration step')
+  plt.savefig('fig.png')
+  'fig.png'
+#+end_src
+
+#+RESULTS:
+[[file:fig.png]]
+
+Predictions:
+#+begin_src python :session :results output
+  print(f"1000 sq ft house prediction {w_final*1.0 + b_final:0.1f} Thousand dollars")
+  print(f"1200 sq ft house prediction {w_final*1.2 + b_final:0.1f} Thousand dollars")
+  print(f"2000 sq ft house prediction {w_final*2.0 + b_final:0.1f} Thousand dollars")
+#+end_src
+
+#+RESULTS:
+: 1000 sq ft house prediction 300.0 Thousand dollars
+: 1200 sq ft house prediction 340.0 Thousand dollars
+: 2000 sq ft house prediction 500.0 Thousand dollars
+
+
+* Multiple Features
+Consider the following dataset:
+| Size in sq ft | # Bedrooms | # Floors | Age in years | Price in k$ |
+|---------------+------------+----------+--------------+-------------|
+|          2104 |          5 |        1 |           45 |         460 |
+|          1416 |          3 |        2 |           40 |         232 |
+|          1534 |          3 |        2 |           40 |         315 |
+|           852 |          2 |        1 |           36 |         178 |
+
+
+Let:
+- $x_j=j^{th}$ feature
+- $n$: number of features
+- $\vec{x}^{(i)}$: features of $i^{th}$ training example
+- $x_j^{(i)}$: value of feature $j$ in the $i^{th}$ training example
+
+E.g. $\vec{x}^{(2)}=\begin{bmatrix}1416 & 3 & 2 & 40\end{bmatrix}$, $x_3^{(2)}=2$
+
+Previously in univariate linear regression, $f_{w,b}(x)=wx+b$
+Now for multiple linear regression, $f_{w,b}(x)=w_1x_1+w_2x_2+w_3x_3+w_4x_4+b$
+Equivalently, if $\vec{w}=\begin{bmatrix}w_1 & w_2 & w_3  & \ldots{} & w_n\end{bmatrix}$ and $\vec{x}=\begin{bmatrix}x_1 & x_2 & x_3 & \ldots{} & x_n\end{bmatrix}$, then $f_{\vec{w},b}(\vec{x})=\vec{w}\cdot{}\vec{x}+b$
+
+** Vectorization
+Consider $\vec{w}=\begin{bmatrix}w_1 & w_2 & w_3\end{bmatrix}$ and $\vec{x}=\begin{bmatrix}x_1 & x_2 & x_3\end{bmatrix}$
+
+or
+#+begin_src python :session :results output
+  import numpy as np
+  w = np.array([1.0,2.5,-3.3])
+  b = 4
+  x = np.array([10,20,30])
+#+end_src
+
+#+RESULTS:
+
+Without vectorization:
+
+$f_{\vec{w},b}(\vec{x})=\displaystyle\sum_{j=1}^n (w_jx_j) + b$
+#+begin_src python :session :results output
+  f = w[0] * x[0] +
+      w[1] * x[1] +
+      w[2] * x[2] + b
+#+end_src
+
+#+RESULTS:
+
+This is slow in coding and in running!
+
+Another alternative:
+#+begin_src python :session :results output
+  f = 0
+  for j in range(0,n):
+      f = f + w[j] * x[j]
+  f = f + b
+#+end_src
+
+#+RESULTS:
+
+Better for coding, but still not vectorized for better computation
+
+Finally, $f_{\vec{w},b}(\vec{x})=\vec{w}\cdot{}\vec{x}+b$
+#+begin_src python :session :results output
+  f = np.dot(w,x) + b
+#+end_src
+
+#+RESULTS:
+
+This is only one line of code, which is faster to type
+It's also vectorized computation, so faster to run.
+
+** Matrices
+*** Creation
+Creating matrices using shape tuple:
+
+#+begin_src python :session :results output
+  a = np.zeros((1, 5))
+  print(f"a shape = {a.shape}, a = {a}")
+
+  a = np.zeros((2, 1))
+  print(f"a shape = {a.shape}, a = {a}")
+
+  a = np.random.random_sample((1, 1))
+  print(f"a shape = {a.shape}, a = {a}")
+#+end_src
+
+#+RESULTS:
+: a shape = (1, 5), a = [[0. 0. 0. 0. 0.]]
+: a shape = (2, 1), a = [[0.]
+:  [0.]]
+: a shape = (1, 1), a = [[0.08224354]]
+
+Specifying data manually:
+
+#+begin_src python :session :results output
+  a = np.array([[5], [4], [3]])
+  print(f"a shape = {a.shape}, a = {a}")
+
+  a = np.array([[5],
+		[4],
+		[3]])
+  print(f"a shape = {a.shape}, a = {a}")
+#+end_src
+
+#+RESULTS:
+: a shape = (3, 1), a = [[5]
+:  [4]
+:  [3]]
+: a shape = (3, 1), a = [[5]
+:  [4]
+:  [3]]
+
+*** Matrix Operations
+**** Indexing
+#+begin_src python :session :results output
+  # Vector indexing
+  a = np.arange(6).reshape(-1, 2)
+  print(f"a.shape: {a.shape}, \na = {a}")
+
+  # Access an element
+  print(f"\na[2,0].shape: {a[2,0].shape}, a[2,0] = {a[2,0]}, type(a[2,0]) = {type(a[2,0])}")
+
+  # access a row
+  print(f"\na[2].shape: {a[2].shape}, a[2] = {a[2]}, type(a[2]) = {type(a[2])}")
+#+end_src
+
+#+RESULTS:
+: a.shape: (3, 2), 
+: a = [[0 1]
+:  [2 3]
+:  [4 5]]
+: 
+: a[2,0].shape: (), a[2,0] = 4, type(a[2,0]) = <class 'numpy.int64'>
+: 
+: a[2].shape: (2,), a[2] = [4 5], type(a[2]) = <class 'numpy.ndarray'>
+
+*** Slicing
+Create an array of indices using [start:stop:step] notation
+#+begin_src python :session :results output
+  # vector 2-D slicing operations
+  a = np.arange(20).reshape(-1, 10)
+  print(f"a = \n{a}")
+
+  # Access 5 consecutive elements (start:stop:step)
+  print("a[0, 2:7:1] = ", a[0, 2:7:1], ", a[0, 2:7:1].shape = ", a[0, 2:7:1].shape, "a 1-D array")
+
+  # Access 5 consecutive elements (start:stop:step) in two rows
+  print("a[:, 2:7:1] = \n", a[:, 2:7:1], ", a[:, 2:7:1].shape = ", a[:, 2:7:1], " a 2-D array")
+
+  # Access all elements
+  print("a[:, :] = \n", a[:, :], ", a[:, :].shape = ", a[:, :].shape)
+
+  # Access all elements in one row (very commmon usage)
+  print("a[1,:] = ", a[1,:], ", a[1,:].shape = ", a[1,:].shape, " a 1-D array")
+
+  # same as
+  print("a[1]   = ", a[1], ", a[1].shape = ", a[1].shape, " a 1-D array")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+a = 
+[[ 0  1  2  3  4  5  6  7  8  9]
+ [10 11 12 13 14 15 16 17 18 19]]
+a[0, 2:7:1] =  [2 3 4 5 6] , a[0, 2:7:1].shape =  (5,) a 1-D array
+a[:, 2:7:1] = 
+ [[ 2  3  4  5  6]
+ [12 13 14 15 16]] , a[:, 2:7:1].shape =  [[ 2  3  4  5  6]
+ [12 13 14 15 16]]  a 2-D array
+a[:, :] = 
+ [[ 0  1  2  3  4  5  6  7  8  9]
+ [10 11 12 13 14 15 16 17 18 19]] , a[:, :].shape =  (2, 10)
+a[1,:] =  [10 11 12 13 14 15 16 17 18 19] , a[1,:].shape =  (10,)  a 1-D array
+a[1]   =  [10 11 12 13 14 15 16 17 18 19] , a[1].shape =  (10,)  a 1-D array
+#+end_example
+
+** Gradient Descent
+$J(\vec{w},b)$
+Repeat:
+$w_j=w_j-\alpha{}\frac{\partial}{\partial{w_j}}J(w_1,\ldots{},w_n,b)$
+$b=b-\alpha{}\frac{\partial}{\partial{b}}J(w_1,\ldots{},w_n,b)$
+
+Equivalently:
+k$w_j=w_j-\alpha{}\frac{\partial}{\partial{w_j}}J(\vec{w},b)$
+$b=b-\alpha{}\frac{\partial}{\partial{b}}J(\vec{w},b)$
+
+For $j=1,\ldots{},n$
+$w_j=w_j-\alpha{}\frac{1}{m}\displaystyle\sum_{i=1}^m(f_{\vec{w},b}(\vec{x}^{(i)})-y^{(i)})x_j^{(i)}$
+And b is the same
+
+** Normal Equation
+Works only for linear regression
+Solves for w and b without iterations
+Does not generalize to other algorithms
+Slow with large number of features
+Possible that this is used on the backed in a library
+
+** COMMENT Implementing Multiple Variable Linear Regression
+
+#+begin_src python :session :results output
+  import copy, math
+  import numpy as np
+  import matplotlib.pyplot as plt
+  np.set_printoptions(precision=2)
+#+end_src
+
+#+RESULTS:
+
+Data:
+| Size sq ft | # Beds | # Floors | Age | Price k$ |
+|       2104 |      5 |        1 |  45 |      460 |
+|       1416 |      3 |        2 |  40 |      232 |
+|        852 |      2 |        1 |  35 |      178 |
+
+#+begin_src python :session :results output
+  X_train = np.array([[2104, 5, 1, 45],
+		      [1416, 3, 2, 40],
+		      [852, 2, 1, 35]])
+  y_train = np.array([460, 232, 178])
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :session :results output
+  b_init = 785.1811367994083
+  w_init = np.array([0.39133535, 18.75376741, -53.36032453, -26.42131618])
+#+end_src
+
+#+RESULTS:
+
+$f_{\boldsymbol{w},b}(\boldsymbol{X})=\boldsymbol{w}\cdot{}\boldsymbol{x}+b$
+
+Single Prediction Element by Element
+
+#+begin_src python :session :results output
+  def predict_single_loop(x, w, b):
+      """
+      single predict using linear regression
+
+      Args:
+        x (ndarray): Shape (n,) example with multiple features
+        w (ndarray): Shape (n,) model parameters
+        b (scalar):  model parameter
+
+      Returns:
+        p (scalar):  prediction
+      """
+      n = x.shape[0]
+      p = 0
+      for i in range(n):
+          p_i = x[i] * w[i]
+          p = p + p_i
+      p = p + b
+      return p
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :session :results output
+  # get a row from our training data
+  x_vec = X_train[0,:]
+  print(f"x_vec shape {x_vec.shape}, x_vec value: {x_vec}")
+
+  # make a prediction
+  f_wb = predict_single_loop(x_vec, w_init, b_init)
+  print(f"f_wb shape {f_wb.shape}, prediction: {f_wb}")
+#+end_src
+
+#+RESULTS:
+: x_vec shape (4,), x_vec value: [2104    5    1   45]
+: f_wb shape (), prediction: 478.70000000000005
+
+#+begin_src python :session :results output
+  def compute_cost(X, y, w, b):
+      """
+      compute cost
+      Args:
+        X (ndarray (m,n)): Data, m examples with n features
+        y (ndarray (m,)):  target values
+        w (ndarray (n,)):  model parameters
+        b (scalar)      :  model parameter
+
+      Returns:
+        cost (scalar): cost
+      """
+      m = X.shape[0]
+      cost = 0.0
+      for i in range(m):
+          f_wb_i = np.dot(X[i], w) + b   # (n,)(n,) = scalar
+          cost += (f_wb_i - y[i])**2
+      cost = cost / (2 * m)
+      return cost
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :session :results output
+  # compute and display cost using our pre-chosen optimal parameters
+  cost = compute_cost(X_train, y_train, w_init, b_init)
+  print(f"Cost at optimal w: {cost}")
+#+end_src
+
+#+RESULTS:
+: Cost at optimal w: 1.5578904428966628e-12
+
+Let's do another implementation that loops over m examples
+
+#+begin_src python :session :results output
+  def compute_gradient(X, y, w, b):
+      """
+      Computes the gradient for linear regression
+      Args:
+        X (ndarray (m,n)): Data, m examples with n features
+        y (ndarray (m,)) : target values
+        w (ndarray (n,)) : model parameters
+        b (scalar)       : model parameter
+
+      Returns:
+        dj_dw (ndarray (n,)): The gradient of the cost w.r.t. the parameters w
+        dj_db (scalar)      : The gradient of the cost w.r.t. the parameter b
+      """
+      m,n = X.shape
+      dj_dw = np.zeros((n,))
+      dj_db = 0.
+
+      for i in range(m):
+          err = (np.dot(X[i], w) + b) - y[i]
+          for j in range(n):
+              dj_dw[j] = dj_dw[j] + err * X[i,j]
+          dj_db = dj_db + err
+      dj_dw = dj_dw / m
+      dj_db = dj_db / m
+
+      return dj_db, dj_dw
+#+end_src
+
+#+RESULTS:
+#+begin_src python :session :results output
+  # Compute and display gradient
+  tmp_dj_db, tmp_dj_dw = compute_gradient(X_train, y_train, w_init, b_init)
+  print(f"dj_db at initial w,b: {tmp_dj_db}")
+  print(f"dj_dw at initial w,b: {tmp_dj_dw}")
+
+#+end_src
+
+#+RESULTS:
+: dj_db at initial w,b: -1.6739251501955248e-06
+: dj_dw at initial w,b: [-2.73e-03 -6.27e-06 -2.22e-06 -6.92e-05]
+
+#+begin_src python :session :results output
+  def gradient_descent(X, y, w_in, b_in, cost_function, gradient_function, alpha, num_iters):
+      """
+      Performs batch gradient descent to learn theta. Updates theta by taking
+      num_iters gradient steps with learning rate alpha
+
+      Args:
+        X (ndarray (m,n))    : Data, m examples with n features
+        y (ndarray (n,))     : target values
+        w_in (ndarray (n,))  : initial model parameters
+        b_in (scalar)        : initial model parameter
+        cost_function        : function to compute the cost
+        gradient_function    : function to compute the gradient
+        alpha (float)        : Learning rate
+        num_iters (int)      : number of iterations to run gradient descent
+
+      Returns:
+        w (ndarray (n,)) : Updated values of parameters
+        b (scalar)       : Updated value of parameter
+      """
+
+      # An array to store cost J and w's at each iteration primarily for graphing later
+      J_history = []
+      w = copy.deepcopy(w_in)
+      b = b_in
+
+      for i in range(num_iters):
+
+          # calculate the gradient and update the parameters
+          dj_db, dj_dw = gradient_function(X, y, w, b)
+
+          # Update parameters using w, b, alpha, and gradient
+          w = w - alpha * dj_dw
+          b = b - alpha * dj_db
+
+          # Save cost J at each iteration
+          if i < 100000:
+              J_history.append(cost_function(X, y, w, b))
+
+          # Print cost every at 10 times or as many iterations if < 10
+          if i% math.ceil(num_iters / 10) == 0:
+              print(f"Iteration {i:4d}: Cost {J_history[-1]:8.2f}")
+
+      return w, b, J_history
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :session :results output
+  # initialize parameters
+  initial_w = np.zeros_like(w_init)
+  initial_b = 0.
+  # some gradient descent settings
+  iterations = 1000
+  alpha = 5.0e-7
+  # run gradient descent
+  w_final, b_final, J_hist = gradient_descent(X_train,
+                                              y_train,
+                                              initial_w,
+                                              initial_b,
+                                              compute_cost,
+                                              compute_gradient,
+                                              alpha,
+                                              iterations)
+  print(f"b,w found by gradient descent: {b_final:0.2f}, {w_final} ")
+  m, _ = X_train.shape
+  for i in range(m):
+      print(f"Prediction: {np.dot(X_train[i], w_final) + b_final:0.2f}, target value: {y_train[i]}")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Iteration    0: Cost  2529.46
+Iteration  100: Cost   695.99
+Iteration  200: Cost   694.92
+Iteration  300: Cost   693.86
+Iteration  400: Cost   692.81
+Iteration  500: Cost   691.77
+Iteration  600: Cost   690.73
+Iteration  700: Cost   689.71
+Iteration  800: Cost   688.70
+Iteration  900: Cost   687.69
+b,w found by gradient descent: -0.00, [ 0.2   0.   -0.01 -0.07] 
+Prediction: 426.19, target value: 460
+Prediction: 286.17, target value: 232
+Prediction: 171.47, target value: 178
+#+end_example
+
+#+begin_src python :session :results file
+  # plot cost versus iteration
+  fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout=True, figsize=(12, 4))
+  ax1.plot(J_hist)
+  ax2.plot(100 + np.arange(len(J_hist[100:])), J_hist[100:])
+  ax1.set_title("Cost vs. iteration")
+  ax2.set_title("Cost vs. iteration (tail)")
+  ax1.set_ylabel("Cost")
+  ax2.set_ylabel("Cost")
+  ax1.set_xlabel("iteration step")
+  ax2.set_xlabel("iteration step")
+  plt.savefig('fig.png')
+  'fig.png'
+#+end_src
+
+#+RESULTS:
+[[file:fig.png]]
